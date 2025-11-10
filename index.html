@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRUM SHEET</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            min-height: 100vh;
+            padding-bottom: 80px;
+            padding-left: 100px;
+            padding-right: 100px;
+        }
+
+        .header {
+            padding: 30px 20px 25px 20px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            flex: 1;
+            text-align: center;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            position: absolute;
+            right: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            background-color: #2a2a2a;
+            color: white;
+        }
+
+        .btn:hover {
+            background-color: #3a3a3a;
+        }
+
+        .song-list {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .song-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            gap: 12px;
+            background-color: #212121;
+            border-radius: 8px;
+        }
+
+        .song-item:hover {
+            background-color: #2a2a2a;
+        }
+
+        .thumbnail {
+            width: 56px;
+            height: 56px;
+            border-radius: 4px;
+            object-fit: cover;
+            flex-shrink: 0;
+            background-color: #3a3a3a;
+        }
+
+        .song-info {
+            flex: 1;
+            min-width: 0;
+            text-align: left;
+        }
+
+        .song-title {
+            font-size: 15px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .song-artist {
+            font-size: 13px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .settings-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: #212121;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 0.8;
+            letter-spacing: -2px;
+        }
+
+        .settings-btn:hover {
+            background-color: #2a2a2a;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: #2a2a2a;
+            border-radius: 16px;
+            padding: 30px;
+            min-width: 300px;
+            max-width: 400px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            padding: 15px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            background-color: #3a3a3a;
+            color: white;
+            text-align: center;
+        }
+
+        .modal-btn:hover {
+            background-color: #4a4a4a;
+        }
+
+        .modal-close {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #1a1a1a;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DRUM SHEET</h1>
+        <div class="actions">
+            <button class="btn" onclick="location.href='add-song.html'">
+                + 곡 추가
+            </button>
+        </div>
+    </div>
+
+    <div class="song-list" id="song-list">
+        <!-- 곡 목록이 여기에 표시됩니다 -->
+    </div>
+
+    <div class="empty-state hidden" id="empty-state">
+        <div class="empty-state-icon">🥁</div>
+        <p>등록된 곡이 없습니다</p>
+        <p style="margin-top: 10px; font-size: 14px; color: #999;">
+            '+ 곡 추가' 버튼을 눌러 첫 곡을 추가해보세요
+        </p>
+    </div>
+
+    <!-- 설정 버튼 -->
+    <button class="settings-btn" onclick="openModal()">⋮</button>
+
+    <!-- 설정 모달 -->
+    <div class="modal" id="settingsModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-title">설정</div>
+            <div class="modal-buttons">
+                <button class="modal-btn" onclick="exportData()">Export (백업)</button>
+                <button class="modal-btn" onclick="importData()">Import (복구)</button>
+                <button class="modal-btn modal-close" onclick="closeModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for import -->
+    <input type="file" id="import-file" accept=".json" style="display: none;" />
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Firebase Database Manager -->
+    <script src="js/firebase-db.js"></script>
+
+    <script>
+        // 초기화
+        async function init() {
+            await firebaseDB.init();
+            
+            // 로그인 확인
+            if (!firebaseDB.isLoggedIn()) {
+                showLoginScreen();
+                return;
+            }
+            
+            await loadSongs();
+        }
+
+        // 로그인 화면 표시
+        function showLoginScreen() {
+            const loginOverlay = document.createElement('div');
+            loginOverlay.id = 'login-overlay';
+            loginOverlay.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: #1a1a1a; z-index: 9999;
+                display: flex; align-items: center; justify-content: center;
+                flex-direction: column; gap: 20px;
+            `;
+            
+            loginOverlay.innerHTML = `
+                <div style="text-align: center;">
+                    <h1 style="font-size: 48px; margin-bottom: 20px;">🥁</h1>
+                    <h2 style="font-size: 32px; margin-bottom: 10px;">DRUM SHEET</h2>
+                    <p style="color: #999; margin-bottom: 40px;">구글 계정으로 로그인하세요</p>
+                    <button id="google-login-btn" style="
+                        background: white; color: #333; border: none;
+                        padding: 15px 40px; font-size: 16px; border-radius: 8px;
+                        cursor: pointer; font-weight: 600; display: flex;
+                        align-items: center; gap: 12px; margin: 0 auto;
+                    ">
+                        <svg width="20" height="20" viewBox="0 0 48 48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                        </svg>
+                        Google로 로그인
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(loginOverlay);
+            
+            document.getElementById('google-login-btn').addEventListener('click', async () => {
+                try {
+                    await firebaseDB.signInWithGoogle();
+                    loginOverlay.remove();
+                    await loadSongs();
+                } catch (error) {
+                    alert('로그인 실패: ' + error.message);
+                }
+            });
+        }
+
+        // 곡 목록 로드
+        async function loadSongs() {
+            try {
+                const songs = await firebaseDB.getAllSongs();
+                
+                if (songs.length === 0) {
+                    showEmptyState();
+                } else {
+                    renderSongList(songs);
+                }
+            } catch (error) {
+                console.error('곡 목록 로드 실패:', error);
+            }
+        }
+
+        // 빈 상태 표시
+        function showEmptyState() {
+            document.getElementById('song-list').innerHTML = '';
+            document.getElementById('empty-state').classList.remove('hidden');
+        }
+
+        // 곡 목록 렌더링
+        function renderSongList(songs) {
+            const listEl = document.getElementById('song-list');
+            const emptyStateEl = document.getElementById('empty-state');
+            
+            listEl.innerHTML = '';
+            emptyStateEl.classList.add('hidden');
+
+            songs.forEach(song => {
+                const songItem = createSongItem(song);
+                listEl.appendChild(songItem);
+            });
+        }
+
+        // 곡 아이템 생성
+        function createSongItem(song) {
+            const div = document.createElement('div');
+            div.className = 'song-item';
+            div.onclick = () => goToSheet(song.id);
+
+            const thumbnailUrl = FirebaseDB.getYouTubeThumbnail(song.youtubeId, 'default');
+            
+            div.innerHTML = `
+                <img src="${thumbnailUrl}" alt="썸네일" class="thumbnail" 
+                     onerror="this.style.display='none'">
+                <div class="song-info">
+                    <div class="song-title">${escapeHtml(song.title)}</div>
+                    <div class="song-artist">${escapeHtml(song.artist)}</div>
+                </div>
+            `;
+
+            return div;
+        }
+
+        // HTML 이스케이프
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 악보 페이지로 이동
+        function goToSheet(songId) {
+            location.href = `sheet.html?id=${songId}`;
+        }
+
+        // 모달 열기
+        function openModal() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        // 모달 닫기
+        function closeModal(event) {
+            if (!event || event.target.id === 'settingsModal') {
+                document.getElementById('settingsModal').classList.remove('active');
+            }
+        }
+
+        // Export (백업)
+        async function exportData() {
+            try {
+                const data = await firebaseDB.exportData();
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `drumsheet-backup-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                
+                URL.revokeObjectURL(url);
+                
+                alert('백업이 완료되었습니다!');
+                closeModal();
+            } catch (error) {
+                console.error('Export 실패:', error);
+                alert('백업에 실패했습니다');
+            }
+        }
+
+        // Import (복구)
+        function importData() {
+            const fileInput = document.getElementById('import-file');
+            
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+                    
+                    if (!confirm('기존 데이터가 모두 삭제되고 백업 데이터로 복구됩니다. 계속하시겠습니까?')) {
+                        return;
+                    }
+
+                    await firebaseDB.importData(data);
+                    
+                    alert('복구가 완료되었습니다!');
+                    closeModal();
+                    await loadSongs();
+                } catch (error) {
+                    console.error('Import 실패:', error);
+                    alert('복구에 실패했습니다. 올바른 백업 파일인지 확인하세요');
+                }
+                
+                // Reset file input
+                fileInput.value = '';
+            };
+            
+            fileInput.click();
+        }
+
+        // 초기화 실행
+        init();
+    </script>
+</body>
+</html>

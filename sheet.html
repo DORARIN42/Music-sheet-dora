@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>드럼 악보 뷰어</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #1a1a1a;
+            padding: 10px 10px 10px 15px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            height: 60px;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            font-size: 24px;
+            cursor: pointer;
+            flex-shrink: 0;
+            width: 24px;
+            height: 40px;
+            line-height: 0.5;
+            padding-bottom: 23px;
+        }
+
+        .back-button:hover {
+            opacity: 0.7;
+        }
+
+        .player-bar {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: #2a2a2a;
+            padding: 8px 15px;
+            border-radius: 8px;
+        }
+
+        .thumbnail {
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .song-info {
+            width: 150px;
+            flex-shrink: 0;
+        }
+
+        .song-title {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+
+        .song-artist {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+            line-height: 1.2;
+        }
+
+        .play-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 2;
+        }
+
+        .play-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: white;
+            border: none;
+            color: black;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 900;
+            font-family: monospace;
+            letter-spacing: 2px;
+            flex-shrink: 0;
+            padding-left: 0px;
+        }
+
+        .play-btn:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .play-btn.playing {
+            padding-left: 0px;
+            font-size: 18px;
+        }
+
+        .time-display {
+            font-size: 12px;
+            color: #999;
+            min-width: 40px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 12px;
+            background-color: #444;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #007AFF;
+            border-radius: 6px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .timing-marker {
+            position: absolute;
+            top: 100%;
+            transform: translateX(-50%);
+            cursor: pointer;
+            color: #007AFF;
+            font-size: 16px;
+            line-height: 1;
+            margin-top: 2px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .timing-marker:hover {
+            color: #fff;
+            transform: translateX(-50%) scale(1.3);
+        }
+
+        .pdf-container {
+            padding-top: 80px;
+            padding-bottom: 80px;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #1a1a1a;
+        }
+
+        .pdf-viewer {
+            width: 100%;
+            max-width: 100%;
+            background-color: transparent;
+            padding: 0;
+        }
+
+        .pdf-page {
+            margin-bottom: 5px;
+            background-color: white;
+            width: 100%;
+        }
+
+        .pdf-page canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 100px 40px;
+            color: #666;
+            font-size: 18px;
+        }
+
+        /* 수정 버튼 (PDF 하단) */
+        .edit-button {
+            display: block;
+            margin: 40px 0 40px auto;
+            padding: 12px 24px;
+            background-color: #3a3a3a;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            border-radius: 8px;
+            width: auto;
+        }
+
+        .edit-button:hover {
+            background-color: #4a4a4a;
+            color: white;
+        }
+
+        .edit-button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a class="back-button" href="index.html">⌄</a>
+        
+        <div class="player-bar">
+            <img id="thumbnail" src="" alt="썸네일" class="thumbnail" onerror="this.style.display='none'">
+            
+            <div class="song-info">
+                <div class="song-title" id="song-title">로딩 중...</div>
+                <div class="song-artist" id="song-artist"></div>
+            </div>
+
+            <div class="play-controls">
+                <button class="play-btn" id="play-btn">▶</button>
+                <span class="time-display" id="current-time">0:00</span>
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <span class="time-display" id="duration">0:00</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="pdf-container">
+        <div class="pdf-viewer" id="pdf-viewer">
+            <div class="loading">악보를 불러오는 중...</div>
+        </div>
+        
+        <!-- 수정 버튼 (PDF 하단) -->
+        <button class="edit-button" id="edit-btn">
+            수정
+        </button>
+    </div>
+
+    <!-- YouTube Player (숨김) -->
+    <div id="youtube-player" style="display: none;"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Firebase Database Manager -->
+    <script src="js/firebase-db.js"></script>
+
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <script>
+        // 전역 변수
+        let player = null;
+        let song = null;
+        let isPlaying = false;
+        let timingPoints = [];
+        let currentTimingIndex = 0;
+        let songId = null;
+
+        // URL에서 곡 ID 가져오기
+        function getSongIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id'); // Firebase는 string ID를 사용하므로 parseInt 제거
+        }
+
+        // 초기화
+        async function init() {
+            console.log('초기화 시작');
+            await firebaseDB.init();
+            console.log('Firebase 초기화 완료');
+            
+            // 로그인 확인
+            if (!firebaseDB.isLoggedIn()) {
+                alert('로그인이 필요합니다');
+                location.href = 'index.html';
+                return;
+            }
+            
+            songId = getSongIdFromUrl();
+            console.log('URL에서 가져온 곡 ID:', songId);
+            
+            if (!songId) {
+                alert('잘못된 접근입니다');
+                location.href = 'index.html';
+                return;
+            }
+
+            song = await firebaseDB.getSong(songId);
+            console.log('DB에서 가져온 곡:', song);
+            
+            if (!song) {
+                alert('곡을 찾을 수 없습니다');
+                location.href = 'index.html';
+                return;
+            }
+
+            timingPoints = song.timingPoints || [];
+            timingPoints.sort((a, b) => a.time - b.time);
+            console.log('타이밍 포인트:', timingPoints);
+
+            // UI 업데이트
+            updateSongInfo();
+            
+            // PDF 렌더링
+            await renderPdf();
+            
+            // YouTube 플레이어 초기화
+            initYouTubePlayer();
+            
+            // 수정 버튼 이벤트
+            document.getElementById('edit-btn').addEventListener('click', () => {
+                console.log('수정 버튼 클릭 - songId:', songId);
+                console.log('수정 버튼 클릭 - song 객체:', song);
+                location.href = `add-song.html?edit=${songId}`;
+            });
+            
+            console.log('초기화 완료');
+        }
+
+        // 곡 정보 업데이트
+        function updateSongInfo() {
+            document.getElementById('song-title').textContent = song.title;
+            document.getElementById('song-artist').textContent = song.artist;
+            
+            const thumbnailUrl = FirebaseDB.getYouTubeThumbnail(song.youtubeId, 'default');
+            document.getElementById('thumbnail').src = thumbnailUrl;
+        }
+
+        // YouTube 플레이어 초기화
+        function initYouTubePlayer() {
+            // YouTube IFrame API가 이미 로드되었는지 확인
+            if (window.YT && window.YT.Player) {
+                createPlayer();
+            } else {
+                // API 로드를 기다림
+                window.onYouTubeIframeAPIReady = createPlayer;
+            }
+        }
+
+        function createPlayer() {
+            if (!song || player) return;
+            
+            player = new YT.Player('youtube-player', {
+                videoId: song.youtubeId,
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                },
+                playerVars: {
+                    'controls': 0,
+                    'disablekb': 1,
+                    'fs': 0,
+                    'modestbranding': 1
+                }
+            });
+        }
+
+        // PDF 렌더링
+        async function renderPdf() {
+            console.log('PDF 렌더링 시작');
+            console.log('song 객체:', song);
+            console.log('song.pdfBlob:', song.pdfBlob);
+            
+            if (!song.pdfBlob) {
+                console.error('PDF Blob이 없습니다');
+                document.getElementById('pdf-viewer').innerHTML = '<div class="loading">PDF 파일이 없습니다</div>';
+                return;
+            }
+
+            try {
+                console.log('PDF ArrayBuffer 변환 시작');
+                const arrayBuffer = await song.pdfBlob.arrayBuffer();
+                console.log('ArrayBuffer 크기:', arrayBuffer.byteLength);
+                
+                console.log('PDF 문서 로드 시작');
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                console.log('PDF 로드 완료. 페이지 수:', pdf.numPages);
+                
+                const viewerEl = document.getElementById('pdf-viewer');
+                viewerEl.innerHTML = '';
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    console.log(`페이지 ${i} 렌더링 시작`);
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'pdf-page';
+                    pageDiv.appendChild(canvas);
+                    viewerEl.appendChild(pageDiv);
+                    
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    console.log(`페이지 ${i} 렌더링 완료`);
+                }
+                console.log('모든 PDF 페이지 렌더링 완료');
+            } catch (error) {
+                console.error('PDF 렌더링 실패:', error);
+                console.error('에러 상세:', error.message, error.stack);
+                document.getElementById('pdf-viewer').innerHTML = `<div class="loading">PDF를 렌더링할 수 없습니다<br><br>에러: ${error.message}</div>`;
+            }
+        }
+
+        function onPlayerReady(event) {
+            console.log('YouTube Player 준비 완료');
+            updateDuration();
+            setupProgressBar();
+            
+            // 플레이어 준비 후 타이밍 마커 렌더링
+            setTimeout(() => {
+                renderTimingMarkers();
+            }, 100);
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                isPlaying = true;
+                updatePlayButton();
+                startTimeUpdate();
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                isPlaying = false;
+                updatePlayButton();
+                stopTimeUpdate();
+            } else if (event.data === YT.PlayerState.ENDED) {
+                isPlaying = false;
+                updatePlayButton();
+                stopTimeUpdate();
+                resetScroll();
+            }
+        }
+
+        // 재생/일시정지
+        document.getElementById('play-btn').addEventListener('click', () => {
+            if (!player) return;
+            
+            if (isPlaying) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        });
+
+        function updatePlayButton() {
+            const btn = document.getElementById('play-btn');
+            if (isPlaying) {
+                btn.textContent = '||';
+                btn.classList.add('playing');
+            } else {
+                btn.textContent = '▶';
+                btn.classList.remove('playing');
+            }
+        }
+
+        // 재생 시간 업데이트
+        let timeUpdateInterval = null;
+
+        function startTimeUpdate() {
+            if (timeUpdateInterval) return;
+            
+            currentTimingIndex = 0;
+            
+            timeUpdateInterval = setInterval(() => {
+                if (player && player.getCurrentTime) {
+                    const currentTime = player.getCurrentTime();
+                    updateCurrentTimeDisplay(currentTime);
+                    updateProgress(currentTime);
+                    checkAndScroll(currentTime);
+                }
+            }, 100);
+        }
+
+        function stopTimeUpdate() {
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+                timeUpdateInterval = null;
+            }
+        }
+
+        // 타이밍 포인트 기반 스크롤
+        function checkAndScroll(currentTime) {
+            if (currentTimingIndex >= timingPoints.length) return;
+            
+            const nextPoint = timingPoints[currentTimingIndex];
+            
+            if (currentTime >= nextPoint.time) {
+                scrollToPosition(nextPoint.scrollY);
+                currentTimingIndex++;
+            }
+        }
+
+        function scrollToPosition(scrollY) {
+            const headerHeight = 60;
+            const targetScroll = scrollY + headerHeight;
+            
+            window.scrollTo({
+                top: targetScroll,
+                behavior: 'smooth'
+            });
+        }
+
+        function updateCurrentTimeDisplay(seconds) {
+            document.getElementById('current-time').textContent = formatTime(seconds);
+        }
+
+        function updateDuration() {
+            if (player && player.getDuration) {
+                const duration = player.getDuration();
+                document.getElementById('duration').textContent = formatTime(duration);
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // 프로그레스 바
+        function setupProgressBar() {
+            const progressBar = document.getElementById('progress-bar');
+            let isDragging = false;
+            
+            // 타이밍 포인트 마커 생성
+            renderTimingMarkers();
+            
+            // 클릭 또는 드래그로 시간 이동
+            const seekToPosition = (e) => {
+                if (!player) return;
+                
+                const rect = progressBar.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+                const newTime = percentage * player.getDuration();
+                
+                player.seekTo(newTime, true);
+            };
+            
+            // 마우스 다운 - 드래그 시작
+            progressBar.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                seekToPosition(e);
+            });
+            
+            // 마우스 무브 - 드래그 중
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                seekToPosition(e);
+            });
+            
+            // 마우스 업 - 드래그 종료
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            // 터치 이벤트 (모바일)
+            progressBar.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                const touch = e.touches[0];
+                seekToPosition(touch);
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const touch = e.touches[0];
+                seekToPosition(touch);
+            });
+            
+            document.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+
+        // 타이밍 포인트 마커 렌더링
+        function renderTimingMarkers() {
+            const progressBar = document.getElementById('progress-bar');
+            if (!player) return;
+            
+            const duration = player.getDuration();
+            if (!duration) return;
+            
+            // 기존 마커 제거
+            const existingMarkers = progressBar.querySelectorAll('.timing-marker');
+            existingMarkers.forEach(marker => marker.remove());
+            
+            // 각 타이밍 포인트에 마커 생성
+            timingPoints.forEach((point, index) => {
+                const marker = document.createElement('div');
+                marker.className = 'timing-marker';
+                marker.textContent = '▲';
+                marker.style.left = `${(point.time / duration) * 100}%`;
+                
+                // 클릭 시 해당 위치에서 1초 전으로 이동
+                marker.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 재생바 클릭 이벤트 방지
+                    const seekTime = Math.max(0, point.time - 1);
+                    player.seekTo(seekTime, true);
+                });
+                
+                progressBar.appendChild(marker);
+            });
+        }
+
+        function updateProgress(currentTime) {
+            if (!player) return;
+            
+            const duration = player.getDuration();
+            const percentage = (currentTime / duration) * 100;
+            document.getElementById('progress-fill').style.width = percentage + '%';
+        }
+
+        function resetScroll() {
+            currentTimingIndex = 0;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 초기화 실행
+        init();
+    </script>
+</body>
+</html>

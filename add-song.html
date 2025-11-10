@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>곡 추가 - 드럼 악보 뷰어</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .main-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .left-panel {
+            flex: 1;
+            max-width: 900px;
+        }
+        .right-panel {
+            flex: 1;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        .container { max-width: 100%; margin: 0; }
+        .header { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
+        .back-button { color: #007AFF; text-decoration: none; font-size: 18px; cursor: pointer; }
+        h1 { font-size: 28px; }
+        .form-group { background-color: #2a2a2a; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+        label { display: block; font-size: 16px; font-weight: 500; margin-bottom: 10px; color: #ccc; }
+        input[type="text"], input[type="url"] {
+            width: 100%; padding: 12px 15px; font-size: 16px;
+            border: 1px solid #444; border-radius: 8px;
+            background-color: #1a1a1a; color: white; margin-bottom: 15px;
+        }
+        input:focus { outline: none; border-color: #007AFF; }
+        input[type="file"] {
+            width: 100%; padding: 12px; font-size: 16px;
+            border: 1px dashed #444; border-radius: 8px;
+            background-color: #1a1a1a; color: white; cursor: pointer;
+        }
+        .youtube-preview { background-color: #2a2a2a; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+        .youtube-preview h2 { font-size: 20px; margin-bottom: 15px; }
+        .video-wrapper {
+            position: relative; padding-bottom: 56.25%; height: 0;
+            overflow: hidden; background-color: #000; border-radius: 8px;
+        }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .timing-section { background-color: #2a2a2a; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+        .timing-section h2 { font-size: 20px; margin-bottom: 15px; }
+        .timing-controls {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; gap: 30px;
+        }
+        .timing-left { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .current-time { font-size: 16px; color: #ccc; }
+        .timing-list { margin-top: 20px; }
+        
+        /* 타이밍 테이블 스타일 */
+        .timing-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #222222;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .timing-table thead {
+            background-color: #2a2a2a;
+        }
+        .timing-table th {
+            padding: 4px 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ccc;
+            border-bottom: 1px solid #3a3a3a;
+            border-right: 1px solid #2a2a2a;
+        }
+        .timing-table th:last-child {
+            border-right: none;
+        }
+        .timing-table td {
+            padding: 4px 10px;
+            border-bottom: 1px solid #2a2a2a;
+            border-right: 1px solid #2a2a2a;
+            font-size: 14px;
+            text-align: center;
+        }
+        .timing-table td:last-child {
+            border-right: none;
+        }
+        .timing-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .timing-table tbody tr:hover {
+            background-color: #2a2a2a;
+        }
+        .timing-table .time-col {
+            width: 60px;
+        }
+        .timing-table .position-col {
+            width: 100px;
+            white-space: nowrap;
+        }
+        .timing-table .lyrics-col {
+            flex: 1;
+            color: #999;
+        }
+        .timing-table tbody .lyrics-col {
+            text-align: left;
+        }
+        .timing-table .actions-col {
+            width: 50px;
+            text-align: center;
+        }
+        .time-inputs {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .time-input-single {
+            width: 60px;
+            padding: 2px 4px;
+            background: none;
+            border: 0;
+            outline: 0;
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+        }
+        .time-input-single:focus {
+            background: #2a2a2a;
+        }
+        .time-input-single:hover {
+            background: #2a2a2a;
+        }
+        .time-input-single::placeholder {
+            color: #666;
+        }
+        /* 숫자 입력 칸 화살표 제거 */
+        .time-input-single::-webkit-outer-spin-button,
+        .time-input-single::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .time-input {
+            width: 40px;
+            padding: 4px;
+            background: transparent;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .time-input:focus {
+            outline: none;
+            background: #2a2a2a;
+        }
+        .time-input:hover {
+            background: #2a2a2a;
+        }
+        /* 숫자 입력 칸 화살표 제거 */
+        .time-input::-webkit-outer-spin-button,
+        .time-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .time-input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .time-separator {
+            color: #999;
+        }
+        .position-input {
+            width: 60px;
+            padding: 2px 4px;
+            background: none;
+            border: 0;
+            outline: 0;
+            color: white;
+            text-align: right;
+            font-size: 14px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+        .position-input:focus {
+            background: #2a2a2a;
+        }
+        .position-input:hover {
+            background: #2a2a2a;
+        }
+        .position-input::placeholder {
+            color: #666;
+        }
+        /* 숫자 입력 칸 화살표 제거 */
+        .position-input::-webkit-outer-spin-button,
+        .position-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .position-input[type=number] {
+            -moz-appearance: textfield;
+        }
+        
+        .timing-item {
+            background-color: #222222; padding: 12px 15px; border-radius: 8px;
+            margin-bottom: 10px; display: flex; justify-content: space-between;
+            align-items: center; gap: 15px;
+        }
+        .timing-info { font-size: 16px; display: flex; align-items: center; gap: 10px; flex: 1; }
+        .timing-time { color: #007AFF; font-weight: 500; min-width: 50px; }
+        .scroll-input {
+            background-color: #222222; border: 1px solid #3a3a3a;
+            border-radius: 4px; color: white; padding: 4px 8px;
+            width: 80px; font-size: 14px; text-align: right;
+        }
+        .scroll-label { color: #999; font-size: 14px; }
+        .btn {
+            padding: 12px 24px; font-size: 16px; border: none;
+            border-radius: 8px; cursor: pointer; transition: all 0.2s; font-weight: 500;
+        }
+        .btn-primary { background-color: #2d5a7b; color: white; }
+        .btn-primary:hover { background-color: #1d4a6b; }
+        .btn-secondary { background-color: #3a3a3a; color: white; }
+        .btn-secondary:hover { background-color: #4a4a4a; }
+        .btn-add-timing {
+            background-color: #252525; color: white; padding: 10px 20px;
+            font-size: 14px; border: 1px solid #3a3a3a;
+        }
+        .btn-delete { background: none; border: none; color: #999; font-size: 18px; cursor: pointer; padding: 5px 10px; }
+        .btn-delete:hover { color: #dc3545; }
+        .action-buttons { display: flex; gap: 15px; justify-content: space-between; align-items: center; margin-top: 30px; }
+        .action-buttons-right { display: flex; gap: 15px; }
+        .btn-delete-song { background-color: #dc3545; color: white; }
+        .btn-delete-song:hover { background-color: #c82333; }
+        .info-message { color: #007AFF; font-size: 13px; margin-top: 10px; }
+        .hidden { display: none; }
+        
+        /* PDF 미리보기 */
+        .pdf-preview-section {
+            background-color: #2a2a2a;
+            border-radius: 12px;
+            padding: 25px;
+            height: 100%;
+        }
+        .pdf-preview-section h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        .pdf-preview-container {
+            position: relative;
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: calc(100vh - 140px);
+            overflow: auto;
+        }
+        .pdf-preview-content {
+            position: relative;
+        }
+        .pdf-ruler {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 60px;
+            height: 100%;
+            border-right: 2px solid #007AFF;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .ruler-mark {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background-color: #007AFF;
+            display: flex;
+            align-items: center;
+        }
+        .ruler-label {
+            position: absolute;
+            left: 5px;
+            font-size: 11px;
+            color: #007AFF;
+            background-color: #1a1a1a;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transform: translateY(-50%);
+            font-weight: 600;
+        }
+        .pdf-pages-wrapper {
+            margin-left: 70px;
+        }
+        .pdf-page-preview {
+            margin-bottom: 10px;
+            background-color: white;
+        }
+        .pdf-page-preview canvas {
+            display: block;
+        }
+        .no-pdf-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        /* 자동 타이밍 생성 상태 메시지 */
+        .auto-timing-status {
+            background-color: #1a3a1a;
+            border: 1px solid #2d5a2d;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #6ec06e;
+            display: none;
+        }
+        .auto-timing-status.error {
+            background-color: #3a1a1a;
+            border-color: #5a2d2d;
+            color: #ff6b6b;
+        }
+        .auto-timing-status.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- 왼쪽 패널: 기존 폼들 -->
+        <div class="left-panel">
+            <div class="container">
+                <div class="header">
+                    <a class="back-button" href="index.html">← 뒤로</a>
+                    <h1>곡 추가</h1>
+                </div>
+
+                <div class="form-group">
+                    <label for="song-title">곡명</label>
+                    <input type="text" id="song-title" placeholder="곡명" required>
+                    <label for="artist">아티스트</label>
+                    <input type="text" id="artist" placeholder="아티스트" required>
+                    <label for="youtube-url">유튜브 URL</label>
+                    <input type="url" id="youtube-url" placeholder="https://www.youtube.com/watch?v=..." required>
+                    <label for="pdf-file">PDF 악보 업로드</label>
+                    <input type="file" id="pdf-file" accept=".pdf" required>
+                </div>
+
+                <div class="youtube-preview">
+                    <h2>유튜브 미리보기</h2>
+                    <div class="video-wrapper">
+                        <div id="youtube-player"></div>
+                    </div>
+                </div>
+
+                <div class="timing-section">
+                    <h2>타이밍 설정</h2>
+                    <div class="auto-timing-status" id="auto-timing-status"></div>
+
+                    <div class="timing-controls">
+                        <div class="timing-left">
+                            <div class="current-time" id="current-time" style="font-size: 18px; font-weight: 600; color: #ccc; margin-right: 15px;">현재 재생 시간: 0:00</div>
+                            <button class="btn btn-add-timing" id="add-timing-btn">+ 포인트 추가</button>
+                            <button class="btn btn-add-timing" id="auto-generate-btn" style="background-color: #1d4a6b; color: white;">자동 포인트 생성</button>
+                        </div>
+                    </div>
+
+                    <div class="timing-list" id="timing-list"></div>
+                </div>
+
+                <div class="action-buttons">
+                    <div>
+                        <button class="btn btn-delete-song" id="delete-song-btn" style="display: none;">삭제</button>
+                    </div>
+                    <div class="action-buttons-right">
+                        <button class="btn btn-primary" id="save-btn">저장</button>
+                        <button class="btn btn-secondary" onclick="location.href='index.html'">취소</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽 패널: PDF 미리보기 -->
+        <div class="right-panel">
+            <div class="pdf-preview-section">
+                <h2>PDF 미리보기</h2>
+                <div class="pdf-preview-container" id="pdf-preview-container">
+                    <div class="no-pdf-message">PDF를 업로드하면 미리보기가 표시됩니다</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Firebase Database Manager -->
+    <script src="js/firebase-db.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        let player = null, pdfFile = null, pdfPages = [], timingPoints = [];
+        let currentVideoId = null, pdfTotalHeight = 0;
+        let editMode = false, editSongId = null;
+        let youtubePlayer = null;
+        let timeUpdateTimer = null;
+
+        async function init() {
+            await firebaseDB.init();
+            
+            if (!firebaseDB.isLoggedIn()) {
+                alert('로그인이 필요합니다');
+                location.href = 'index.html';
+                return;
+            }
+            
+            const params = new URLSearchParams(window.location.search);
+            editSongId = params.get('edit');
+            
+            if (editSongId) {
+                editMode = true;
+                await loadSongForEdit(editSongId);
+            }
+            
+            document.getElementById('youtube-url').addEventListener('input', handleYouTubeUrlChange);
+            document.getElementById('pdf-file').addEventListener('change', handlePdfFileChange);
+            document.getElementById('add-timing-btn').addEventListener('click', addTimingPoint);
+            document.getElementById('auto-generate-btn').addEventListener('click', handleAutoGenerateClick);
+            document.getElementById('save-btn').addEventListener('click', saveSong);
+        }
+
+        async function loadSongForEdit(songId) {
+            try {
+                const song = await firebaseDB.getSong(songId);
+                if (!song) {
+                    alert('곡을 찾을 수 없습니다');
+                    location.href = 'index.html';
+                    return;
+                }
+                
+                document.querySelector('h1').textContent = '곡 수정';
+                document.getElementById('save-btn').textContent = '수정 완료';
+                
+                const deleteBtn = document.getElementById('delete-song-btn');
+                deleteBtn.style.display = 'block';
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm(`"${song.title}"을(를) 정말 삭제하시겠습니까?`)) {
+                        try {
+                            await firebaseDB.deleteSong(songId);
+                            alert('곡이 삭제되었습니다');
+                            location.href = 'index.html';
+                        } catch (error) {
+                            console.error('삭제 실패:', error);
+                            alert('곡 삭제에 실패했습니다');
+                        }
+                    }
+                });
+                
+                document.getElementById('song-title').value = song.title;
+                document.getElementById('artist').value = song.artist;
+                document.getElementById('youtube-url').value = song.youtubeUrl;
+                
+                currentVideoId = song.youtubeId;
+                if (window.YT && window.YT.Player) {
+                    initYouTubePlayer(song.youtubeId);
+                } else {
+                    window.onYouTubeIframeAPIReady = () => initYouTubePlayer(song.youtubeId);
+                }
+                
+                if (song.pdfBlob) {
+                    pdfFile = song.pdfBlob;
+                    pdfPages = song.pdfPages || [];
+                    pdfTotalHeight = pdfPages.length > 0 ? pdfPages[pdfPages.length - 1].endY : 0;
+                    
+                    const arrayBuffer = await song.pdfBlob.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                    await renderPdfPreview(pdf);
+                }
+                
+                timingPoints = song.timingPoints || [];
+                renderTimingList();
+                
+            } catch (error) {
+                console.error('곡 로드 실패:', error);
+                alert('곡을 불러오는데 실패했습니다');
+                location.href = 'index.html';
+            }
+        }
+
+        function handleYouTubeUrlChange(e) {
+            const videoId = FirebaseDB.extractYouTubeId(e.target.value);
+            if (videoId) {
+                currentVideoId = videoId;
+                
+                if (window.YT && window.YT.Player) {
+                    initYouTubePlayer(videoId);
+                } else {
+                    window.onYouTubeIframeAPIReady = () => initYouTubePlayer(videoId);
+                }
+            }
+        }
+
+        function initYouTubePlayer(videoId) {
+            if (youtubePlayer) {
+                youtubePlayer.destroy();
+            }
+            
+            youtubePlayer = new YT.Player('youtube-player', {
+                videoId: videoId,
+                events: {
+                    'onStateChange': onPlayerStateChange,
+                    'onReady': onPlayerReady
+                }
+            });
+        }
+        
+        function onPlayerReady(event) {
+            // 비디오 제목 가져오기
+            const videoData = event.target.getVideoData();
+            const videoTitle = videoData.title;
+            
+            console.log('YouTube 비디오 제목:', videoTitle);
+            
+            // 제목이 비어있지 않고, 현재 입력 필드가 비어있을 때만 자동 채우기
+            if (videoTitle && !editMode) {
+                const parsed = parseVideoTitle(videoTitle);
+                
+                if (parsed.title && !document.getElementById('song-title').value) {
+                    document.getElementById('song-title').value = parsed.title;
+                    console.log('✅ 곡명 자동 입력:', parsed.title);
+                }
+                
+                if (parsed.artist && !document.getElementById('artist').value) {
+                    document.getElementById('artist').value = parsed.artist;
+                    console.log('✅ 아티스트명 자동 입력:', parsed.artist);
+                }
+            }
+        }
+        
+        function parseVideoTitle(title) {
+            // 일반적인 YouTube 음악 제목 패턴들:
+            // 1. "Artist - Title"
+            // 2. "Title - Artist"
+            // 3. "Artist 'Title'"
+            // 4. "Title (Official Music Video)"
+            // 5. "[Artist] Title"
+            
+            let artist = '';
+            let songTitle = '';
+            
+            // 괄호 안의 불필요한 정보 제거 (Official Video, MV, Lyric Video 등)
+            const cleanTitle = title
+                .replace(/\([^)]*(?:official|music video|mv|lyric|audio|visualizer)[^)]*\)/gi, '')
+                .replace(/\[[^\]]*(?:official|music video|mv|lyric|audio|visualizer)[^\]]*\]/gi, '')
+                .trim();
+            
+            // 패턴 1: "Artist - Title" 또는 "Title - Artist"
+            if (cleanTitle.includes(' - ')) {
+                const parts = cleanTitle.split(' - ').map(p => p.trim());
+                if (parts.length >= 2) {
+                    // 첫 번째가 더 짧으면 아티스트일 가능성이 높음
+                    if (parts[0].length < parts[1].length) {
+                        artist = parts[0];
+                        songTitle = parts[1];
+                    } else {
+                        artist = parts[1];
+                        songTitle = parts[0];
+                    }
+                }
+            }
+            // 패턴 2: "[Artist] Title" 또는 "(Artist) Title"
+            else if (/^[\[\(][^\]\)]+[\]\)]\s+.+/.test(cleanTitle)) {
+                const match = cleanTitle.match(/^[\[\(]([^\]\)]+)[\]\)]\s+(.+)/);
+                if (match) {
+                    artist = match[1].trim();
+                    songTitle = match[2].trim();
+                }
+            }
+            // 패턴 3: 인용부호로 묶인 제목 "Artist 'Title'"
+            else if (cleanTitle.includes("'") || cleanTitle.includes('"')) {
+                const quoteMatch = cleanTitle.match(/^([^'"]+)['"]([^'"]+)['"]/);
+                if (quoteMatch) {
+                    artist = quoteMatch[1].trim();
+                    songTitle = quoteMatch[2].trim();
+                }
+            }
+            // 패턴을 찾지 못한 경우: 전체를 곡명으로
+            else {
+                songTitle = cleanTitle;
+            }
+            
+            return {
+                title: songTitle,
+                artist: artist
+            };
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                startTimeUpdate();
+            } else {
+                stopTimeUpdate();
+            }
+        }
+
+        function startTimeUpdate() {
+            if (timeUpdateTimer) return;
+            
+            timeUpdateTimer = setInterval(() => {
+                if (youtubePlayer && youtubePlayer.getCurrentTime) {
+                    const currentTime = youtubePlayer.getCurrentTime();
+                    updateCurrentTimeDisplay(currentTime);
+                }
+            }, 100);
+        }
+
+        function stopTimeUpdate() {
+            if (timeUpdateTimer) {
+                clearInterval(timeUpdateTimer);
+                timeUpdateTimer = null;
+            }
+        }
+
+        function updateCurrentTimeDisplay(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            document.getElementById('current-time').textContent = 
+                `현재 재생 시간: ${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // 자동 생성 버튼 클릭 핸들러
+        async function handleAutoGenerateClick() {
+            console.log('=== 자동 포인트 생성 버튼 클릭 ===');
+            
+            if (!pdfFile) {
+                alert('먼저 PDF 파일을 업로드해주세요');
+                return;
+            }
+            
+            if (!currentVideoId) {
+                alert('먼저 YouTube URL을 입력해주세요');
+                return;
+            }
+            
+            if (timingPoints.length > 0) {
+                if (!confirm('기존 타이밍 포인트가 모두 삭제되고 새로 생성됩니다. 계속하시겠습니까?')) {
+                    return;
+                }
+            }
+            
+            try {
+                showAutoTimingStatus('🔍 악보 줄 감지 중...', false);
+                
+                // PDF 로드
+                const arrayBuffer = await pdfFile.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                
+                // 악보 줄 위치 감지
+                console.log('자동 악보 줄 감지 시작...');
+                const staffLines = await detectStaffLines(pdf);
+                console.log('감지된 악보 줄 개수:', staffLines.length);
+                
+                if (staffLines.length === 0) {
+                    showAutoTimingStatus('악보 줄을 감지하지 못했습니다', true);
+                    return;
+                }
+                
+                // 타이밍 포인트 생성 (시간은 0초로 초기화)
+                timingPoints = staffLines.map(item => ({
+                    time: 0,
+                    scrollY: typeof item === 'object' ? Math.floor(item.scrollY) : Math.floor(item),
+                    lyrics: typeof item === 'object' ? (item.lyrics || '') : ''
+                }));
+                
+                renderTimingList();
+                console.log(`✅ ${staffLines.length}개의 타이밍 포인트가 자동 생성되었습니다!`);
+                
+                showAutoTimingStatus(`🎵 ${staffLines.length}개의 악보 줄이 자동으로 감지되었습니다!`, false);
+                
+                // 가사 타이밍 자동 생성 시도
+                await tryAutoGenerateTimingFromLyrics();
+                
+            } catch (error) {
+                console.error('❌ 자동 포인트 생성 실패:', error);
+                showAutoTimingStatus('자동 생성에 실패했습니다', true);
+            }
+        }
+
+        async function checkAndAutoGenerate(pdf) {
+            console.log('=== checkAndAutoGenerate 호출 ===');
+            console.log('pdfFile:', pdfFile ? '있음' : '없음');
+            console.log('currentVideoId:', currentVideoId);
+            console.log('기존 timingPoints:', timingPoints.length);
+            
+            if (!pdfFile || !currentVideoId) {
+                console.log('조건 미충족: PDF 또는 YouTube ID 없음');
+                return;
+            }
+            
+            if (timingPoints.length > 0) {
+                console.log('이미 타이밍 포인트 있음 - 자동 생성 스킵');
+                return;
+            }
+            
+            try {
+                if (!pdf) {
+                    console.log('PDF 다시 로드 중...');
+                    const arrayBuffer = await pdfFile.arrayBuffer();
+                    pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                }
+                
+                console.log('자동 악보 줄 감지 시작...');
+                const staffLines = await detectStaffLines(pdf);
+                console.log('감지된 악보 줄 개수:', staffLines.length);
+                console.log('감지된 위치:', staffLines);
+                
+                if (staffLines.length === 0) {
+                    console.log('악보 줄 감지 실패 - 포인트 생성 안 함');
+                    return;
+                }
+                
+                timingPoints = staffLines.map(item => ({
+                    time: 0,
+                    scrollY: typeof item === 'object' ? Math.floor(item.scrollY) : Math.floor(item),
+                    lyrics: typeof item === 'object' ? (item.lyrics || '') : ''
+                }));
+                
+                renderTimingList();
+                console.log(`✅ ${staffLines.length}개의 타이밍 포인트가 자동 생성되었습니다!`);
+                
+                showAutoTimingStatus(`🎵 ${staffLines.length}개의 악보 줄이 자동으로 감지되었습니다!`, false);
+                
+                // 가사 타이밍 자동 생성 시도
+                tryAutoGenerateTimingFromLyrics();
+                
+            } catch (error) {
+                console.error('❌ 자동 포인트 생성 실패:', error);
+            }
+        }
+
+        async function handlePdfFileChange(e) {
+            pdfFile = e.target.files[0];
+            if (!pdfFile) return;
+            try {
+                const arrayBuffer = await pdfFile.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                pdfPages = [];
+                let totalHeight = 0;
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    pdfPages.push({
+                        pageNum: i, startY: totalHeight,
+                        endY: totalHeight + viewport.height, height: viewport.height
+                    });
+                    totalHeight += viewport.height + 20;
+                }
+                pdfTotalHeight = totalHeight;
+                
+                await renderPdfPreview(pdf);
+            } catch (error) {
+                alert('PDF 파일을 읽을 수 없습니다');
+            }
+        }
+
+        async function renderPdfPreview(pdf) {
+            const container = document.getElementById('pdf-preview-container');
+            container.innerHTML = '';
+            
+            const content = document.createElement('div');
+            content.className = 'pdf-preview-content';
+            
+            const pagesWrapper = document.createElement('div');
+            pagesWrapper.className = 'pdf-pages-wrapper';
+            
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 });
+                
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'pdf-page-preview';
+                pageDiv.appendChild(canvas);
+                pagesWrapper.appendChild(pageDiv);
+                
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+            }
+            
+            content.appendChild(pagesWrapper);
+            
+            const ruler = document.createElement('div');
+            ruler.className = 'pdf-ruler';
+            ruler.style.height = pdfTotalHeight + 'px';
+            
+            for (let y = 0; y <= pdfTotalHeight; y += 100) {
+                const mark = document.createElement('div');
+                mark.className = 'ruler-mark';
+                mark.style.top = y + 'px';
+                
+                const label = document.createElement('div');
+                label.className = 'ruler-label';
+                label.textContent = y + 'px';
+                mark.appendChild(label);
+                
+                ruler.appendChild(mark);
+            }
+            
+            content.appendChild(ruler);
+            container.appendChild(content);
+        }
+
+        async function detectStaffLines(pdf) {
+            console.log('🔍 마디 여백 감지 시작 - 총 페이지:', pdf.numPages);
+            const staffPositions = [];
+            let currentY = 0;
+            
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                console.log(`페이지 ${pageNum} 분석 중...`);
+                const page = await pdf.getPage(pageNum);
+                const viewport = page.getViewport({ scale: 1.5 });
+                
+                console.log(`페이지 ${pageNum} 크기:`, viewport.width, 'x', viewport.height);
+                
+                const canvas = document.createElement('canvas');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                const context = canvas.getContext('2d');
+                
+                await page.render({ canvasContext: context, viewport }).promise;
+                
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                const rowWhiteness = [];
+                for (let y = 0; y < canvas.height; y++) {
+                    let whiteCount = 0;
+                    let totalPixels = 0;
+                    
+                    const startX = Math.floor(canvas.width * 0.1);
+                    const endX = Math.floor(canvas.width * 0.9);
+                    
+                    for (let x = startX; x < endX; x++) {
+                        const i = (y * canvas.width + x) * 4;
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        
+                        const brightness = (r + g + b) / 3;
+                        if (brightness > 200) {
+                            whiteCount++;
+                        }
+                        totalPixels++;
+                    }
+                    
+                    rowWhiteness.push(whiteCount / totalPixels);
+                }
+                
+                const maxWhiteness = Math.max(...rowWhiteness);
+                console.log(`페이지 ${pageNum} - 최대 흰색 비율:`, maxWhiteness.toFixed(3));
+                
+                const whiteThreshold = 0.92;
+                const minGapHeight = 20;
+                const maxGapHeight = 100;
+                const minStaffDistance = 50;
+                
+                const startY = (pageNum === 1) ? 150 : 50;
+                
+                let inGap = false;
+                let gapStart = 0;
+                let lastStaffY = -minStaffDistance;
+                
+                for (let y = startY; y < rowWhiteness.length - 50; y++) {
+                    if (!inGap && rowWhiteness[y] > whiteThreshold) {
+                        inGap = true;
+                        gapStart = y;
+                    } else if (inGap && rowWhiteness[y] <= whiteThreshold) {
+                        const gapHeight = y - gapStart;
+                        
+                        if (gapHeight >= minGapHeight && 
+                            gapHeight <= maxGapHeight &&
+                            (gapStart - lastStaffY) >= minStaffDistance) {
+                            const gapCenter = Math.floor((gapStart + y) / 2);
+                            staffPositions.push(currentY + gapCenter);
+                            lastStaffY = gapStart;
+                            console.log(`  ✓ 마디 여백 발견: Y=${currentY + gapCenter} (${gapHeight}px 여백)`);
+                        }
+                        inGap = false;
+                    }
+                }
+                
+                currentY += viewport.height + 20;
+            }
+            
+            console.log(`총 ${staffPositions.length}개의 마디 발견`);
+            
+            const staffWithLyrics = await extractLyrics(pdf, staffPositions);
+            
+            return staffWithLyrics;
+        }
+
+        async function extractLyrics(pdf, staffPositions) {
+            if (!pdf) return staffPositions.map(y => ({ scrollY: y, lyrics: '' }));
+            
+            console.log('🔤 가사 추출 시작...');
+            const allLyrics = [];
+            let currentY = 0;
+            
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                
+                const canvasViewport = page.getViewport({ scale: 1.5 });
+                const textContent = await page.getTextContent();
+                const originalViewport = page.getViewport({ scale: 1.0 });
+                
+                textContent.items.forEach(item => {
+                    const text = item.str.trim();
+                    if (/[가-힣]/.test(text)) {
+                        const yOriginal = originalViewport.height - item.transform[5];
+                        const yScaled = yOriginal * 1.5;
+                        const y = currentY + yScaled;
+                        
+                        console.log(`    📝 "${text}" → Y=${Math.round(y)} (Canvas 좌표, 원본Y=${item.transform[5]})`);
+                        allLyrics.push({
+                            text: text,
+                            x: item.transform[4] * 1.5,
+                            y: y
+                        });
+                    }
+                });
+                
+                currentY += canvasViewport.height + 20;
+            }
+            
+            console.log(`총 ${allLyrics.length}개의 한글 텍스트 발견`);
+            
+            const staffWithLyrics = staffPositions.map((staffY, index) => {
+                const nearbyLyrics = allLyrics.filter(lyric => {
+                    const distance = lyric.y - staffY;
+                    return distance > 0 && distance <= 150;
+                });
+                
+                if (nearbyLyrics.length > 0) {
+                    nearbyLyrics.sort((a, b) => a.y - b.y);
+                    const closestY = nearbyLyrics[0].y;
+                    const sameLine = nearbyLyrics.filter(l => Math.abs(l.y - closestY) < 10);
+                    
+                    sameLine.sort((a, b) => a.x - b.x);
+                    const lyrics = sameLine.map(l => l.text).join(' ');
+                    console.log(`  ✓ 마디 Y=${Math.round(staffY)} → 가사 Y=${Math.round(closestY)} (거리: ${Math.round(closestY - staffY)}px) → "${lyrics}"`);
+                    return { scrollY: staffY, lyrics: lyrics };
+                }
+                
+                console.log(`  ✗ 마디 Y=${Math.round(staffY)} → 가사 없음`);
+                return { scrollY: staffY, lyrics: '' };
+            });
+            
+            return staffWithLyrics;
+        }
+
+        // ========== 자동 가사 타이밍 생성 기능 ==========
+        
+        async function fetchSyncedLyrics(title, artist) {
+            // YouTube 비디오 길이 가져오기
+            let videoDuration = null;
+            if (youtubePlayer && youtubePlayer.getDuration) {
+                try {
+                    videoDuration = Math.floor(youtubePlayer.getDuration());
+                    console.log(`YouTube 비디오 길이: ${videoDuration}초`);
+                } catch (e) {
+                    console.log('YouTube 비디오 길이를 가져올 수 없음');
+                }
+            }
+            
+            if (!videoDuration) {
+                console.log('비디오 길이를 알 수 없어 검색 불가');
+                return null;
+            }
+            
+            console.log(`🔍 LRCLIB 검색: 곡명="${title}", 아티스트="${artist}"`);
+            
+            try {
+                // LRCLIB 검색 API 사용 (q 파라미터로 검색)
+                const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(title + ' ' + artist)}`;
+                console.log('검색 URL:', searchUrl);
+                
+                const response = await fetch(searchUrl);
+                
+                if (!response.ok) {
+                    console.log(`LRCLIB 검색 API 실패: ${response.status}`);
+                    return null;
+                }
+                
+                const results = await response.json();
+                console.log(`📋 검색 결과: ${results.length}개`);
+                
+                if (results.length === 0) {
+                    console.log('검색 결과 없음');
+                    return null;
+                }
+                
+                // 최대 30개까지만 처리
+                const limitedResults = results.slice(0, 30);
+                console.log(`처리할 결과: ${limitedResults.length}개`);
+                
+                // 후보들 분석
+                const candidates = [];
+                
+                for (const result of limitedResults) {
+                    // 1. Synced Lyrics가 있는지 확인
+                    if (!result.syncedLyrics) {
+                        console.log(`  ✗ "${result.trackName}" by "${result.artistName}" - Synced Lyrics 없음`);
+                        continue;
+                    }
+                    
+                    // 2. Duration 체크 (가장 중요!) - 비디오 길이를 알 때
+                    let durationDiff = 0;
+                    if (result.duration) {
+                        durationDiff = Math.abs(result.duration - videoDuration);
+                        // 2초 이상 차이나면 제외
+                        if (durationDiff > 2) {
+                            console.log(`  ✗ "${result.trackName}" by "${result.artistName}" (${result.duration}초) - Duration 차이 너무 큼 (${durationDiff}초)`);
+                            continue;
+                        }
+                    } else {
+                        // duration 정보가 없으면 제외
+                        console.log(`  ✗ "${result.trackName}" by "${result.artistName}" - Duration 정보 없음`);
+                        continue;
+                    }
+                    
+                    // 3. 제목 유사도 계산 (동점일 때 사용)
+                    const titleSimilarity = textSimilarity(title, result.trackName || result.name);
+                    const titleContains = normalizeText(result.trackName || result.name).includes(normalizeText(title)) ||
+                                         normalizeText(title).includes(normalizeText(result.trackName || result.name));
+                    
+                    // 4. 아티스트명 유사도 계산 (동점일 때 사용)
+                    const artistSimilarity = textSimilarity(artist, result.artistName);
+                    const artistContains = normalizeText(result.artistName).includes(normalizeText(artist)) ||
+                                          normalizeText(artist).includes(normalizeText(result.artistName));
+                    
+                    // Duration을 기준으로 1차 점수, 제목/아티스트는 2차 점수
+                    const titleScore = titleSimilarity * 0.6 + (titleContains ? 0.4 : 0);
+                    const artistScore = artistSimilarity * 0.6 + (artistContains ? 0.4 : 0);
+                    const secondaryScore = titleScore * 0.6 + artistScore * 0.4;
+                    
+                    candidates.push({
+                        result: result,
+                        durationDiff: durationDiff,
+                        titleSimilarity: titleSimilarity,
+                        artistSimilarity: artistSimilarity,
+                        titleContains: titleContains,
+                        artistContains: artistContains,
+                        secondaryScore: secondaryScore,
+                        lyrics: parseLRC(result.syncedLyrics)
+                    });
+                    
+                    console.log(`  ✓ "${result.trackName}" by "${result.artistName}" (${result.duration}초)`);
+                    console.log(`    - Duration 차이: ${durationDiff}초 ✅`);
+                    console.log(`    - 제목 유사도: ${(titleSimilarity * 100).toFixed(0)}% ${titleContains ? '[포함]' : ''}`);
+                    console.log(`    - 아티스트 유사도: ${(artistSimilarity * 100).toFixed(0)}% ${artistContains ? '[포함]' : ''}`);
+                    console.log(`    - 2차 점수: ${(secondaryScore * 100).toFixed(0)}%`);
+                }
+                
+                if (candidates.length === 0) {
+                    console.log('조건을 만족하는 가사를 찾지 못함');
+                    return null;
+                }
+                
+                // 1순위: Duration 차이 (ASC), 2순위: 제목/아티스트 점수 (DESC)
+                candidates.sort((a, b) => {
+                    if (a.durationDiff !== b.durationDiff) {
+                        return a.durationDiff - b.durationDiff; // Duration 차이가 적은 것 먼저
+                    }
+                    return b.secondaryScore - a.secondaryScore; // Duration 동점이면 2차 점수가 높은 것
+                });
+                
+                const selected = candidates[0];
+                
+                console.log(`\n🎉 최적 후보 선택:`);
+                console.log(`  곡명: "${selected.result.trackName}" by "${selected.result.artistName}"`);
+                console.log(`  앨범: ${selected.result.albumName || 'N/A'}`);
+                console.log(`  Duration 차이: ${selected.durationDiff}초 (${selected.result.duration}초 vs ${videoDuration}초)`);
+                console.log(`  제목 유사도: ${(selected.titleSimilarity * 100).toFixed(0)}%`);
+                console.log(`  아티스트 유사도: ${(selected.artistSimilarity * 100).toFixed(0)}%`);
+                console.log(`  2차 점수: ${(selected.secondaryScore * 100).toFixed(0)}%`);
+                console.log(`  가사 라인 수: ${selected.lyrics.length}`);
+                
+                return selected.lyrics;
+                
+            } catch (error) {
+                console.error('LRCLIB 검색 에러:', error);
+                return null;
+            }
+        }
+        
+        // 텍스트 유사도 계산 함수
+        function textSimilarity(str1, str2) {
+            const s1 = normalizeText(str1);
+            const s2 = normalizeText(str2);
+            
+            if (s1 === s2) return 1.0;
+            if (s1.length === 0 || s2.length === 0) return 0.0;
+            
+            // Levenshtein Distance 계산
+            const matrix = [];
+            for (let i = 0; i <= s2.length; i++) {
+                matrix[i] = [i];
+            }
+            for (let j = 0; j <= s1.length; j++) {
+                matrix[0][j] = j;
+            }
+            
+            for (let i = 1; i <= s2.length; i++) {
+                for (let j = 1; j <= s1.length; j++) {
+                    if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+            
+            const distance = matrix[s2.length][s1.length];
+            const maxLength = Math.max(s1.length, s2.length);
+            return 1 - distance / maxLength;
+        }
+        
+        function parseLRC(lrcText) {
+            if (!lrcText) return [];
+            
+            const lines = lrcText.split('\n');
+            const result = [];
+            
+            for (const line of lines) {
+                const match = line.match(/\[(\d+):(\d+\.\d+)\](.*)/);
+                if (match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseFloat(match[2]);
+                    const text = match[3].trim();
+                    
+                    if (text) {
+                        result.push({
+                            time: Math.floor(minutes * 60 + seconds),
+                            text: text
+                        });
+                    }
+                }
+            }
+            
+            return result;
+        }
+        
+        function normalizeText(text) {
+            return text
+                .replace(/\([^)]*\)/g, '') // 괄호와 괄호 안의 내용 제거 (ex: "(코러스)" 제거)
+                .replace(/\[[^\]]*\]/g, '') // 대괄호와 대괄호 안의 내용 제거
+                .toLowerCase()
+                .replace(/[\s.,\-\/!?;:'"“”‘’()\[\]{}]/g, '') // 공백 및 모든 특수문자 제거
+                .replace(/[^a-z0-9ㄱ-ㅎㅏ-ㅣ가-힣]/g, '') // 한글, 영문, 숫자만 남기기
+                .trim();
+        }
+        
+        function similarity(str1, str2) {
+            return textSimilarity(str1, str2);
+        }
+        
+        function matchLyrics(pdfLyrics, syncedLyrics) {
+            console.log('🔗 가사 매칭 시작...');
+            console.log('PDF 가사:', pdfLyrics.length, '개');
+            console.log('Synced 가사:', syncedLyrics.length, '개');
+            
+            // 1) API 가사들을 띄어쓰기 제거하여 저장
+            const syncedNormalized = syncedLyrics.map((item, index) => ({
+                index: index,
+                time: item.time,
+                originalText: item.text,
+                normalizedText: normalizeText(item.text)
+            }));
+            
+            console.log('\n📄 Synced 가사 예시 (첫 5개):');
+            syncedNormalized.slice(0, 5).forEach((item, i) => {
+                console.log(`  [${i}] ${item.time}초: "${item.originalText}" → "${item.normalizedText}"`);
+            });
+            
+            // 2) PDF 가사들도 띄어쓰기 제거하여 저장
+            const pdfNormalized = pdfLyrics.map((item, index) => ({
+                index: index,
+                scrollY: item.scrollY,
+                originalLyrics: item.lyrics,
+                normalizedLyrics: normalizeText(item.lyrics)
+            }));
+            
+            console.log('\n📄 PDF 가사 예시 (첫 5개):');
+            pdfNormalized.slice(0, 5).forEach((item, i) => {
+                console.log(`  [${i}] "${item.originalLyrics}" → "${item.normalizedLyrics}"`);
+            });
+            console.log('');
+            
+            // 3) 순차적 매칭
+            const matched = [];
+            const usedPdfIndices = new Set(); // 이미 매칭된 PDF 가사 추적
+            
+            // 각 Synced 가사를 순차적으로 처리
+            for (const syncedItem of syncedNormalized) {
+                // Synced 가사가 너무 짧으면 스킵 ("다..." 같은 경우 오매칭 방지)
+                if (syncedItem.normalizedText.length < 3) {
+                    console.log(`  ⊘ Synced[${syncedItem.index}] "${syncedItem.originalText}" - 너무 짧아서 스킵 (${syncedItem.normalizedText.length}자)`);
+                    continue;
+                }
+                
+                // PDF 가사들을 순서대로 확인
+                for (let i = 0; i < pdfNormalized.length; i++) {
+                    const pdfItem = pdfNormalized[i];
+                    
+                    // 이미 매칭된 PDF 가사는 스킵
+                    if (usedPdfIndices.has(pdfItem.index)) {
+                        continue;
+                    }
+                    
+                    // PDF 가사의 초반 부분이 Synced 가사로 시작하는지 확인
+                    if (pdfItem.normalizedLyrics.startsWith(syncedItem.normalizedText)) {
+                        // 매칭 성공! (1초 전으로 설정, 최소 0초)
+                        const adjustedTime = Math.max(0, syncedItem.time - 1);
+                        
+                        matched.push({
+                            scrollY: pdfItem.scrollY,
+                            time: adjustedTime,
+                            lyrics: pdfItem.originalLyrics,
+                            matchedWith: syncedItem.originalText
+                        });
+                        
+                        usedPdfIndices.add(pdfItem.index);
+                        console.log(`  ✓ 매칭: PDF[${pdfItem.index}] "${pdfItem.originalLyrics.substring(0, 20)}..." ← Synced[${syncedItem.index}] ${syncedItem.time}초 → ${adjustedTime}초 "${syncedItem.originalText}"`);
+                        break; // 다음 Synced 가사로 이동
+                    }
+                }
+            }
+            
+            // 매칭되지 않은 PDF 가사들은 시간 0으로 추가
+            for (const pdfItem of pdfNormalized) {
+                if (!usedPdfIndices.has(pdfItem.index)) {
+                    matched.push({
+                        scrollY: pdfItem.scrollY,
+                        time: 0,
+                        lyrics: pdfItem.originalLyrics,
+                        matchedWith: null
+                    });
+                    console.log(`  ✗ 매칭 실패: PDF[${pdfItem.index}] "${pdfItem.originalLyrics}"`);
+                }
+            }
+            
+            // scrollY 순서대로 정렬
+            matched.sort((a, b) => a.scrollY - b.scrollY);
+            
+            const successCount = matched.filter(m => m.time > 0).length;
+            console.log(`\n매칭 완료: ${successCount}/${matched.length}`);
+            return matched;
+        }
+        
+        function showAutoTimingStatus(message, isError = false) {
+            const statusEl = document.getElementById('auto-timing-status');
+            statusEl.textContent = message;
+            statusEl.className = 'auto-timing-status show';
+            if (isError) {
+                statusEl.classList.add('error');
+            }
+            
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, 5000);
+        }
+        
+        async function tryAutoGenerateTimingFromLyrics() {
+            console.log('🎯 자동 타이밍 생성 시도...');
+            
+            const title = document.getElementById('song-title').value.trim();
+            const artist = document.getElementById('artist').value.trim();
+            
+            if (!title || !artist) {
+                console.log('제목 또는 아티스트 정보 없음 - 스킵');
+                return;
+            }
+            
+            if (timingPoints.length === 0 || !timingPoints.some(p => p.lyrics)) {
+                console.log('PDF 가사 정보 없음 - 스킵');
+                return;
+            }
+            
+            if (timingPoints.some(p => p.time > 0)) {
+                console.log('이미 타이밍이 설정되어 있음 - 스킵');
+                return;
+            }
+            
+            try {
+                showAutoTimingStatus('🔍 온라인 가사 검색 중...', false);
+                
+                const syncedLyrics = await fetchSyncedLyrics(title, artist);
+                
+                if (!syncedLyrics || syncedLyrics.length === 0) {
+                    console.log('온라인 가사 없음 - 자동 타이밍 생성 불가');
+                    showAutoTimingStatus('온라인 가사를 찾을 수 없습니다', true);
+                    return;
+                }
+                
+                const pdfLyrics = timingPoints.map(p => ({
+                    scrollY: p.scrollY,
+                    lyrics: p.lyrics
+                })).filter(p => p.lyrics);
+                
+                const matched = matchLyrics(pdfLyrics, syncedLyrics);
+                
+                let matchedCount = 0;
+                for (const matchedItem of matched) {
+                    const pointIndex = timingPoints.findIndex(p => 
+                        p.scrollY === matchedItem.scrollY && p.lyrics === matchedItem.lyrics
+                    );
+                    
+                    if (pointIndex !== -1 && matchedItem.time > 0) {
+                        timingPoints[pointIndex].time = matchedItem.time;
+                        matchedCount++;
+                    }
+                }
+                
+                // 위치 순으로 정렬
+                timingPoints.sort((a, b) => a.scrollY - b.scrollY);
+                renderTimingList();
+                
+                if (matchedCount > 0) {
+                    showAutoTimingStatus(`🎉 ${matchedCount}개의 타이밍이 자동으로 생성되었습니다!`, false);
+                    console.log(`✅ 자동 타이밍 생성 완료: ${matchedCount}개`);
+                } else {
+                    showAutoTimingStatus('가사 매칭에 실패했습니다', true);
+                    console.log('매칭된 가사 없음 - 타이밍 생성 안 됨');
+                }
+                
+            } catch (error) {
+                console.error('자동 타이밍 생성 실패:', error);
+                showAutoTimingStatus('자동 타이밍 생성 중 오류가 발생했습니다', true);
+            }
+        }
+
+        function addTimingPoint() {
+            let currentTime = 0;
+            
+            if (youtubePlayer && youtubePlayer.getCurrentTime) {
+                currentTime = Math.floor(youtubePlayer.getCurrentTime());
+            }
+            
+            const timeInput = prompt('타이밍 포인트의 시간을 입력하세요\n\n예시:\n- 0444 → 4분 44초\n- 145 → 1분 45초\n- 45 → 45초', currentTime.toString());
+            if (!timeInput) return;
+            
+            const time = parseTimeInput(timeInput);
+            if (time === null) {
+                alert('올바른 형식으로 입력하세요\n\n예시:\n- 0444 (4분 44초)\n- 145 (1분 45초)\n- 45 (45초)');
+                return;
+            }
+            
+            timingPoints.push({ time: time, scrollY: 0, lyrics: '' });
+            // 위치 순으로 정렬
+            timingPoints.sort((a, b) => a.scrollY - b.scrollY);
+            renderTimingList();
+        }
+        
+        function parseTimeInput(input) {
+            const num = input.replace(/\D/g, '');
+            if (!num) return null;
+            
+            if (num.length <= 2) {
+                return parseInt(num);
+            } else if (num.length === 3) {
+                const min = parseInt(num[0]);
+                const sec = parseInt(num.substring(1));
+                return min * 60 + sec;
+            } else {
+                const min = parseInt(num.substring(0, num.length - 2));
+                const sec = parseInt(num.substring(num.length - 2));
+                return min * 60 + sec;
+            }
+        }
+
+        function renderTimingList() {
+            const listEl = document.getElementById('timing-list');
+            listEl.innerHTML = '';
+            
+            if (timingPoints.length === 0) {
+                listEl.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">타이밍 포인트가 없습니다</div>';
+                return;
+            }
+            
+            // 테이블 생성
+            const table = document.createElement('table');
+            table.className = 'timing-table';
+            
+            // 테이블 헤더
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th class="time-col">시간</th>
+                        <th class="position-col">위치</th>
+                        <th class="lyrics-col">가사</th>
+                        <th class="actions-col"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+            
+            const tbody = table.querySelector('tbody');
+            
+            timingPoints.forEach((point, index) => {
+                const minutes = Math.floor(point.time / 60);
+                const seconds = point.time % 60;
+                
+                const tr = document.createElement('tr');
+                
+                // 입력용 숫자 (분초 형식: 444 = 4분 44초)
+                const timeAsNumber = minutes * 100 + seconds;
+                
+                tr.innerHTML = `
+                    <td class="time-col">
+                        <input type="number" class="time-input-single" data-time="${timeAsNumber}" value="${timeAsNumber}" placeholder="0" />
+                    </td>
+                    <td class="position-col">
+                        <input type="number" class="position-input" value="${point.scrollY}" /><span style="color: #999; margin-left: 2px;">px</span>
+                    </td>
+                    <td class="lyrics-col">${point.lyrics || ''}</td>
+                    <td class="actions-col">
+                        <button class="btn-delete">×</button>
+                    </td>
+                `;
+                
+                // 시간 입력 이벤트 (숫자 입력, 표시는 00:00 형식)
+                const timeInput = tr.querySelector('.time-input-single');
+                
+                // 포커스 시 숫자만 표시
+                timeInput.addEventListener('focus', (e) => {
+                    const timeNum = parseInt(e.target.dataset.time) || 0;
+                    e.target.value = timeNum || '';
+                });
+                
+                timeInput.addEventListener('input', (e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    
+                    // 숫자를 초로 변환 (444 → 4분 44초 = 284초)
+                    let totalSeconds = 0;
+                    
+                    if (value <= 59) {
+                        // 59 이하: 초로 간주
+                        totalSeconds = value;
+                    } else {
+                        // 60 이상: 마지막 2자리를 초, 나머지를 분으로
+                        const min = Math.floor(value / 100);
+                        const sec = value % 100;
+                        totalSeconds = min * 60 + sec;
+                    }
+                    
+                    timingPoints[index].time = totalSeconds;
+                    e.target.dataset.time = value;
+                });
+                
+                // 포커스 아웃 시 00:00 형식으로 표시 (분도 2자리)
+                timeInput.addEventListener('blur', (e) => {
+                    const totalSeconds = timingPoints[index].time;
+                    const min = Math.floor(totalSeconds / 60);
+                    const sec = totalSeconds % 60;
+                    e.target.value = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+                    
+                    // 위치 순으로 정렬
+                    timingPoints.sort((a, b) => a.scrollY - b.scrollY);
+                    renderTimingList();
+                });
+                
+                // 위치 입력 이벤트
+                tr.querySelector('.position-input').addEventListener('input', (e) => {
+                    timingPoints[index].scrollY = parseInt(e.target.value) || 0;
+                });
+                
+                tr.querySelector('.position-input').addEventListener('blur', () => {
+                    // 위치 순으로 정렬
+                    timingPoints.sort((a, b) => a.scrollY - b.scrollY);
+                    renderTimingList();
+                });
+                
+                // 삭제 버튼
+                tr.querySelector('.btn-delete').addEventListener('click', () => {
+                    timingPoints.splice(index, 1);
+                    // 위치 순으로 정렬
+                    timingPoints.sort((a, b) => a.scrollY - b.scrollY);
+                    renderTimingList();
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            listEl.appendChild(table);
+        }
+
+        async function saveSong() {
+            const title = document.getElementById('song-title').value.trim();
+            const artist = document.getElementById('artist').value.trim();
+            const youtubeUrl = document.getElementById('youtube-url').value.trim();
+            
+            if (!title || !artist || !youtubeUrl || !pdfFile) {
+                alert('모든 필수 항목을 입력하세요');
+                return;
+            }
+            if (timingPoints.length === 0) {
+                alert('최소 1개 이상의 타이밍 포인트를 추가하세요');
+                return;
+            }
+            
+            try {
+                if (editMode && editSongId) {
+                    await firebaseDB.updateSong(editSongId, {
+                        title, artist, youtubeUrl, youtubeId: currentVideoId,
+                        pdfBlob: pdfFile, pdfPages, timingPoints
+                    });
+                    alert('곡이 성공적으로 수정되었습니다!');
+                    location.href = `sheet.html?id=${editSongId}`;
+                } else {
+                    await firebaseDB.addSong({
+                        title, artist, youtubeUrl, youtubeId: currentVideoId,
+                        pdfBlob: pdfFile, pdfPages, timingPoints
+                    });
+                    alert('곡이 성공적으로 추가되었습니다!');
+                    location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('저장 실패:', error);
+                alert('곡 저장에 실패했습니다');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
