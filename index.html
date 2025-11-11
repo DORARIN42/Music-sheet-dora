@@ -258,7 +258,7 @@
     <input type="file" id="import-file" accept=".json" style="display: none;" />
 
     <!-- 디버그 로그 (개발용) -->
-    <div id="debug-log" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.9); color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; z-index: 10000;"></div>
+    <div id="debug-log" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.9); color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; z-index: 50000;"></div>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -448,6 +448,12 @@
             // 추가 후 확인
             const added = document.getElementById('login-overlay');
             console.log('추가된 요소 확인:', added ? '성공' : '실패');
+            
+            if (added) {
+                console.log('오버레이 스타일:', added.style.cssText);
+                console.log('오버레이 display:', window.getComputedStyle(added).display);
+                console.log('오버레이 z-index:', window.getComputedStyle(added).zIndex);
+            }
             
             const btn = document.getElementById('google-login-btn');
             console.log('버튼 요소 확인:', btn ? '성공' : '실패');
