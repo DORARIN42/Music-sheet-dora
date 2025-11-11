@@ -248,6 +248,7 @@
             <div class="modal-buttons">
                 <button class="modal-btn" onclick="exportData()">Export (백업)</button>
                 <button class="modal-btn" onclick="importData()">Import (복구)</button>
+                <button class="modal-btn" onclick="clearCache()" style="background-color: #4a3a3a;">캐시 삭제</button>
                 <button class="modal-btn modal-close" onclick="closeModal()">닫기</button>
             </div>
         </div>
@@ -255,6 +256,9 @@
 
     <!-- Hidden file input for import -->
     <input type="file" id="import-file" accept=".json" style="display: none;" />
+
+    <!-- 디버그 로그 (개발용) -->
+    <div id="debug-log" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.9); color: #0f0; padding: 10px; font-family: monospace; font-size: 11px; max-height: 200px; overflow-y: auto; z-index: 10000;"></div>
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -266,24 +270,72 @@
     <script src="js/firebase-db.js"></script>
 
     <script>
+        // 스크립트 시작 확인
+        if (window.location.search.includes('debug=1')) {
+            alert('디버그 모드 시작!');
+        }
+        
+        // 디버그 로그 표시 (화면에 출력)
+        const debugLogEl = document.getElementById('debug-log');
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        // URL에 ?debug=1 이 있으면 디버그 모드
+        const isDebugMode = window.location.search.includes('debug=1');
+        if (isDebugMode) {
+            debugLogEl.style.display = 'block';
+            debugLogEl.innerHTML = '<div style="color: #ff0;">[디버그 모드 활성화]</div>';
+        }
+        
+        function addDebugLog(message, isError = false) {
+            if (!isDebugMode) return;
+            const time = new Date().toLocaleTimeString();
+            const color = isError ? '#f00' : '#0f0';
+            debugLogEl.innerHTML += `<div style="color: ${color};">[${time}] ${message}</div>`;
+            debugLogEl.scrollTop = debugLogEl.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            addDebugLog(args.join(' '));
+        };
+        
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            addDebugLog(args.join(' '), true);
+        };
+        
+        console.log('✅ 디버그 시스템 초기화 완료');
+
         // 초기화
         async function init() {
             try {
                 // 로딩 표시
                 showLoadingScreen();
                 
+                console.log('1. Firebase init 시작');
                 await firebaseDB.init();
+                console.log('2. Firebase init 완료');
+                
+                console.log('3. 로그인 상태 확인');
+                const isLoggedIn = firebaseDB.isLoggedIn();
+                console.log('4. isLoggedIn:', isLoggedIn);
+                console.log('5. currentUser:', firebaseDB.currentUser);
                 
                 // 로그인 확인
-                if (!firebaseDB.isLoggedIn()) {
+                if (!isLoggedIn) {
+                    console.log('6. 로그인 안됨 - 로그인 화면 표시');
                     hideLoadingScreen();
                     showLoginScreen();
                     return;
                 }
                 
+                console.log('7. 로그인됨 - 곡 목록 로드');
                 hideLoadingScreen();
                 await loadSongs();
+                console.log('8. 초기화 완료');
             } catch (error) {
+                console.error('❌ 초기화 에러:', error);
                 hideLoadingScreen();
                 showErrorScreen('초기화 오류: ' + error.message);
             }
@@ -538,6 +590,28 @@
             };
             
             fileInput.click();
+        }
+
+        // 캐시 삭제
+        async function clearCache() {
+            if (!confirm('PDF 캐시를 모두 삭제하시겠습니까?\n다음에 곡을 열 때 PDF를 다시 다운로드합니다.')) {
+                return;
+            }
+            
+            try {
+                // IndexedDB 전체 삭제
+                await new Promise((resolve, reject) => {
+                    const request = indexedDB.deleteDatabase('DrumSheetCache');
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+                
+                alert('캐시가 삭제되었습니다!');
+                closeModal();
+            } catch (error) {
+                console.error('캐시 삭제 실패:', error);
+                alert('캐시 삭제에 실패했습니다');
+            }
         }
 
         // 초기화 실행
