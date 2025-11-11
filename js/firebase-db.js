@@ -186,14 +186,20 @@ class FirebaseDB {
   async handleRedirectResult() {
     try {
       const result = await this.auth.getRedirectResult();
-      if (result.user) {
+      if (result && result.user) {
         this.currentUser = result.user;
-        console.log('Redirect 로그인 성공:', this.currentUser.email);
+        console.log('✅ Redirect 로그인 성공:', this.currentUser.email);
         return this.currentUser;
       }
       return null;
     } catch (error) {
-      console.error('Redirect 결과 처리 실패:', error);
+      // auth/popup-closed-by-user 등 일부 에러는 무시
+      if (error.code === 'auth/popup-closed-by-user' || 
+          error.code === 'auth/cancelled-popup-request') {
+        console.log('ℹ️ 사용자가 로그인 취소');
+        return null;
+      }
+      console.error('❌ Redirect 결과 처리 실패:', error);
       throw error;
     }
   }

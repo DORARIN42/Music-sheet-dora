@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>디버그 모드</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 20px;
+            font-size: 14px;
+        }
+        .log {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #0f0;
+        }
+        .error {
+            color: #f00;
+            border-left-color: #f00;
+        }
+    </style>
+</head>
+<body>
+    <h1>🥁 DRUM SHEET - 디버그 모드</h1>
+    <div id="logs"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase-db.js"></script>
+
+    <script>
+        const logsEl = document.getElementById('logs');
+        
+        function log(message, isError = false) {
+            const div = document.createElement('div');
+            div.className = 'log' + (isError ? ' error' : '');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsEl.appendChild(div);
+            console.log(message);
+        }
+
+        async function test() {
+            try {
+                log('=== 디버그 시작 ===');
+                
+                log('1. Firebase 초기화 시작...');
+                await firebaseDB.init();
+                log('✅ Firebase 초기화 완료');
+                
+                log('2. 로그인 상태 확인...');
+                const isLoggedIn = firebaseDB.isLoggedIn();
+                log(`로그인 상태: ${isLoggedIn}`);
+                
+                if (firebaseDB.currentUser) {
+                    log(`사용자: ${firebaseDB.currentUser.email}`);
+                    log(`UID: ${firebaseDB.currentUser.uid}`);
+                } else {
+                    log('currentUser: null');
+                }
+                
+                if (!isLoggedIn) {
+                    log('⚠️ 로그아웃 상태 - 로그인 필요');
+                    log('Google 로그인 시작...');
+                    await firebaseDB.signInWithGoogle();
+                    log('로그인 요청 완료 (redirect 중...)');
+                    return;
+                }
+                
+                log('3. 곡 목록 조회 시작...');
+                const songs = await firebaseDB.getAllSongs();
+                log(`✅ 곡 ${songs.length}개 조회 완료`);
+                
+                songs.forEach((song, i) => {
+                    log(`  ${i+1}. ${song.title} - ${song.artist}`);
+                });
+                
+                log('=== 모든 테스트 완료 ===');
+                
+            } catch (error) {
+                log(`❌ 에러 발생: ${error.message}`, true);
+                log(`   코드: ${error.code || 'N/A'}`, true);
+                log(`   스택: ${error.stack}`, true);
+            }
+        }
+
+        test();
+    </script>
+</body>
+</html>
