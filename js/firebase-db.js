@@ -114,33 +114,43 @@ class FirebaseDB {
    */
   async init() {
     try {
+      console.log('🔧 Firebase 초기화 시작');
+      
       // Firebase 초기화
       this.app = firebase.initializeApp(firebaseConfig);
       this.db = firebase.firestore();
       this.storage = firebase.storage();
       this.auth = firebase.auth();
+      console.log('✅ Firebase SDK 초기화 완료');
 
       // IndexedDB 캐시 초기화
       await this.initCache();
+      console.log('✅ IndexedDB 캐시 초기화 완료');
 
       // Redirect 결과 처리 (모바일 로그인 후)
-      await this.handleRedirectResult();
+      console.log('🔍 Redirect 결과 확인 중...');
+      const redirectResult = await this.handleRedirectResult();
+      if (redirectResult) {
+        console.log('✅ Redirect 로그인 성공:', redirectResult.email);
+      } else {
+        console.log('ℹ️ Redirect 결과 없음 (정상)');
+      }
 
       // 로그인 상태 변경 리스너
       return new Promise((resolve, reject) => {
-        this.auth.onAuthStateChanged(user => {
+        const unsubscribe = this.auth.onAuthStateChanged(user => {
           this.currentUser = user;
           if (user) {
-            console.log('로그인됨:', user.email);
-            resolve(this.db);
+            console.log('✅ 로그인됨:', user.email);
           } else {
-            console.log('로그아웃 상태');
-            resolve(this.db);
+            console.log('ℹ️ 로그아웃 상태');
           }
+          unsubscribe(); // 첫 콜백 후 구독 해제
+          resolve(this.db);
         });
       });
     } catch (error) {
-      console.error('Firebase 초기화 실패:', error);
+      console.error('❌ Firebase 초기화 실패:', error);
       throw error;
     }
   }

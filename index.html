@@ -268,15 +268,52 @@
     <script>
         // 초기화
         async function init() {
+            // 로딩 표시
+            showLoadingScreen();
+            
             await firebaseDB.init();
             
             // 로그인 확인
             if (!firebaseDB.isLoggedIn()) {
+                hideLoadingScreen();
                 showLoginScreen();
                 return;
             }
             
+            hideLoadingScreen();
             await loadSongs();
+        }
+        
+        // 로딩 화면 표시
+        function showLoadingScreen() {
+            const existingLoading = document.getElementById('loading-overlay');
+            if (existingLoading) return;
+            
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loading-overlay';
+            loadingOverlay.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: #1a1a1a; z-index: 9999;
+                display: flex; align-items: center; justify-content: center;
+                flex-direction: column; gap: 20px;
+            `;
+            
+            loadingOverlay.innerHTML = `
+                <div style="text-align: center;">
+                    <h1 style="font-size: 48px; margin-bottom: 20px;">🥁</h1>
+                    <p style="color: #999;">로딩 중...</p>
+                </div>
+            `;
+            
+            document.body.appendChild(loadingOverlay);
+        }
+        
+        // 로딩 화면 숨기기
+        function hideLoadingScreen() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.remove();
+            }
         }
 
         // 로그인 화면 표시
