@@ -123,6 +123,9 @@ class FirebaseDB {
       // IndexedDB 캐시 초기화
       await this.initCache();
 
+      // Redirect 결과 처리 (모바일 로그인 후)
+      await this.handleRedirectResult();
+
       // 로그인 상태 변경 리스너
       return new Promise((resolve, reject) => {
         this.auth.onAuthStateChanged(user => {
@@ -143,19 +146,53 @@ class FirebaseDB {
   }
 
   /**
-   * 구글 로그인
+   * 구글 로그인 (모바일 환경 대응 - Redirect 방식)
    */
   async signInWithGoogle() {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
-      const result = await this.auth.signInWithPopup(provider);
-      this.currentUser = result.user;
-      console.log('로그인 성공:', this.currentUser.email);
-      return this.currentUser;
+      
+      // 모바일 환경에서는 redirect 방식 사용
+      if (this.isMobile()) {
+        await this.auth.signInWithRedirect(provider);
+        // redirect 후 페이지가 다시 로드되므로 여기서 return
+        return null;
+      } else {
+        // 데스크톱에서는 popup 방식 사용
+        const result = await this.auth.signInWithPopup(provider);
+        this.currentUser = result.user;
+        console.log('로그인 성공:', this.currentUser.email);
+        return this.currentUser;
+      }
     } catch (error) {
       console.error('로그인 실패:', error);
       throw error;
     }
+  }
+
+  /**
+   * Redirect 결과 처리
+   */
+  async handleRedirectResult() {
+    try {
+      const result = await this.auth.getRedirectResult();
+      if (result.user) {
+        this.currentUser = result.user;
+        console.log('Redirect 로그인 성공:', this.currentUser.email);
+        return this.currentUser;
+      }
+      return null;
+    } catch (error) {
+      console.error('Redirect 결과 처리 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 모바일 환경 감지
+   */
+  isMobile() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   }
 
   /**

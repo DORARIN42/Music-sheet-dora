@@ -317,8 +317,12 @@
             document.getElementById('google-login-btn').addEventListener('click', async () => {
                 try {
                     await firebaseDB.signInWithGoogle();
-                    loginOverlay.remove();
-                    await loadSongs();
+                    // 모바일에서는 redirect 후 페이지가 다시 로드됨
+                    // 데스크톱에서는 여기서 로그인 완료 처리
+                    if (!firebaseDB.isMobile()) {
+                        loginOverlay.remove();
+                        await loadSongs();
+                    }
                 } catch (error) {
                     alert('로그인 실패: ' + error.message);
                 }
