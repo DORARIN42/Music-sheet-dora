@@ -127,28 +127,40 @@ class FirebaseDB {
       await this.initCache();
       console.log('✅ IndexedDB 캐시 초기화 완료');
 
-      // Redirect 결과 처리 (모바일 로그인 후)
-      console.log('🔍 Redirect 결과 확인 중...');
-      const redirectResult = await this.handleRedirectResult();
-      if (redirectResult) {
-        console.log('✅ Redirect 로그인 성공:', redirectResult.email);
-      } else {
-        console.log('ℹ️ Redirect 결과 없음 (정상)');
-      }
-
-      // 로그인 상태 변경 리스너
-      return new Promise((resolve, reject) => {
-        const unsubscribe = this.auth.onAuthStateChanged(user => {
+      // 🔥 CRITICAL: onAuthStateChanged가 완료될 때까지 기다려야 함
+      // redirect 결과를 포함한 인증 상태가 확정될 때까지 대기
+      await new Promise((resolve) => {
+        const unsubscribe = this.auth.onAuthStateChanged(async (user) => {
           this.currentUser = user;
+          
           if (user) {
             console.log('✅ 로그인됨:', user.email);
           } else {
             console.log('ℹ️ 로그아웃 상태');
+            
+            // 로그아웃 상태일 때만 redirect 결과 확인
+            console.log('🔍 Redirect 결과 확인 중...');
+            try {
+              const result = await this.auth.getRedirectResult();
+              if (result && result.user) {
+                this.currentUser = result.user;
+                console.log('✅ Redirect 로그인 성공:', result.user.email);
+              }
+            } catch (error) {
+              if (error.code !== 'auth/popup-closed-by-user' && 
+                  error.code !== 'auth/cancelled-popup-request') {
+                console.error('❌ Redirect 결과 처리 실패:', error);
+              }
+            }
           }
-          unsubscribe(); // 첫 콜백 후 구독 해제
+          
+          unsubscribe();
           resolve(this.db);
         });
       });
+
+      console.log('✅ Firebase 초기화 완료');
+      return this.db;
     } catch (error) {
       console.error('❌ Firebase 초기화 실패:', error);
       throw error;
