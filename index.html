@@ -322,18 +322,25 @@
                 console.log('4. isLoggedIn:', isLoggedIn);
                 console.log('5. currentUser:', firebaseDB.currentUser);
                 
+                if (firebaseDB.currentUser) {
+                    console.log('6. currentUser 상세:', {
+                        email: firebaseDB.currentUser.email,
+                        uid: firebaseDB.currentUser.uid
+                    });
+                }
+                
                 // 로그인 확인
                 if (!isLoggedIn) {
-                    console.log('6. 로그인 안됨 - 로그인 화면 표시');
+                    console.log('7. 로그인 안됨 - 로그인 화면 표시');
                     hideLoadingScreen();
                     showLoginScreen();
                     return;
                 }
                 
-                console.log('7. 로그인됨 - 곡 목록 로드');
+                console.log('8. 로그인됨 - 곡 목록 로드');
                 hideLoadingScreen();
                 await loadSongs();
-                console.log('8. 초기화 완료');
+                console.log('9. 초기화 완료');
             } catch (error) {
                 console.error('❌ 초기화 에러:', error);
                 hideLoadingScreen();

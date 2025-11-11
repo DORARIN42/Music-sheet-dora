@@ -122,6 +122,14 @@ class FirebaseDB {
       this.storage = firebase.storage();
       this.auth = firebase.auth();
       console.log('✅ Firebase SDK 초기화 완료');
+      
+      // 🔥 CRITICAL: 인증 지속성 설정 (Safari 호환성)
+      try {
+        await this.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        console.log('✅ Auth persistence 설정 완료: LOCAL');
+      } catch (error) {
+        console.warn('⚠️ Auth persistence 설정 실패:', error);
+      }
 
       // IndexedDB 캐시 초기화
       await this.initCache();
@@ -131,6 +139,7 @@ class FirebaseDB {
       // redirect 결과를 포함한 인증 상태가 확정될 때까지 대기
       await new Promise((resolve) => {
         const unsubscribe = this.auth.onAuthStateChanged(async (user) => {
+          console.log('🔔 onAuthStateChanged 호출됨, user:', user ? user.email : 'null');
           this.currentUser = user;
           
           if (user) {
@@ -142,9 +151,12 @@ class FirebaseDB {
             console.log('🔍 Redirect 결과 확인 중...');
             try {
               const result = await this.auth.getRedirectResult();
+              console.log('📥 getRedirectResult 완료:', result);
               if (result && result.user) {
                 this.currentUser = result.user;
                 console.log('✅ Redirect 로그인 성공:', result.user.email);
+              } else {
+                console.log('ℹ️ Redirect 결과 없음');
               }
             } catch (error) {
               if (error.code !== 'auth/popup-closed-by-user' && 
