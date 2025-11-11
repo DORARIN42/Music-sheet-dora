@@ -399,14 +399,25 @@
 
         // 로그인 화면 표시
         function showLoginScreen() {
+            console.log('showLoginScreen 함수 시작');
+            
+            // 기존 로그인 화면이 있으면 제거
+            const existing = document.getElementById('login-overlay');
+            if (existing) {
+                console.log('기존 로그인 화면 제거');
+                existing.remove();
+            }
+            
             const loginOverlay = document.createElement('div');
             loginOverlay.id = 'login-overlay';
             loginOverlay.style.cssText = `
                 position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                background: #1a1a1a; z-index: 9999;
+                background: #1a1a1a; z-index: 99999;
                 display: flex; align-items: center; justify-content: center;
                 flex-direction: column; gap: 20px;
             `;
+            
+            console.log('로그인 오버레이 생성 완료');
             
             loginOverlay.innerHTML = `
                 <div style="text-align: center;">
@@ -430,31 +441,42 @@
                 </div>
             `;
             
+            console.log('HTML 삽입 완료');
             document.body.appendChild(loginOverlay);
+            console.log('DOM에 추가 완료');
             
-            document.getElementById('google-login-btn').addEventListener('click', async () => {
-                try {
-                    const btn = document.getElementById('google-login-btn');
-                    btn.textContent = '로그인 중...';
-                    btn.disabled = true;
-                    
-                    await firebaseDB.signInWithGoogle();
-                    
-                    // 모바일에서는 redirect 후 페이지가 다시 로드됨
-                    // 데스크톱에서는 여기서 로그인 완료 처리
-                    if (!firebaseDB.isMobile()) {
-                        loginOverlay.remove();
-                        await loadSongs();
+            // 추가 후 확인
+            const added = document.getElementById('login-overlay');
+            console.log('추가된 요소 확인:', added ? '성공' : '실패');
+            
+            const btn = document.getElementById('google-login-btn');
+            console.log('버튼 요소 확인:', btn ? '성공' : '실패');
+            
+            if (btn) {
+                btn.addEventListener('click', async () => {
+                    console.log('로그인 버튼 클릭됨');
+                    try {
+                        btn.textContent = '로그인 중...';
+                        btn.disabled = true;
+                        
+                        await firebaseDB.signInWithGoogle();
+                        
+                        // 모바일에서는 redirect 후 페이지가 다시 로드됨
+                        // 데스크톱에서는 여기서 로그인 완료 처리
+                        if (!firebaseDB.isMobile()) {
+                            loginOverlay.remove();
+                            await loadSongs();
+                        }
+                    } catch (error) {
+                        console.error('로그인 에러:', error);
+                        alert('로그인 실패: ' + error.message + '\n\n' + (error.code || ''));
+                        
+                        btn.textContent = 'Google로 로그인';
+                        btn.disabled = false;
                     }
-                } catch (error) {
-                    console.error('로그인 에러:', error);
-                    alert('로그인 실패: ' + error.message + '\n\n' + (error.code || ''));
-                    
-                    const btn = document.getElementById('google-login-btn');
-                    btn.textContent = 'Google로 로그인';
-                    btn.disabled = false;
-                }
-            });
+                });
+                console.log('버튼 이벤트 리스너 등록 완료');
+            }
         }
 
         // 곡 목록 로드
