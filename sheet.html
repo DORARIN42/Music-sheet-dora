@@ -334,6 +334,13 @@
                 location.href = 'index.html';
                 return;
             }
+            
+            if (!song.pdfBlob) {
+                alert('PDF를 불러오는데 실패했습니다. 네트워크를 확인해주세요.');
+                console.error('song 객체:', song);
+                location.href = 'index.html';
+                return;
+            }
 
             timingPoints = song.timingPoints || [];
             timingPoints.sort((a, b) => a.time - b.time);

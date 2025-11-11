@@ -288,17 +288,34 @@ class FirebaseDB {
    */
   async downloadPDF(pdfUrl) {
     try {
+      console.log('📥 PDF 다운로드 시작:', pdfUrl);
+      
       // Firebase Storage SDK를 사용하여 직접 Blob 다운로드 (CORS 문제 해결)
       const storageRef = this.storage.refFromURL(pdfUrl);
+      console.log('✅ Storage reference 생성 완료');
       
       // getDownloadURL()로 다운로드 URL을 얻고, 해당 URL에서 fetch
       const downloadUrl = await storageRef.getDownloadURL();
+      console.log('✅ Download URL 획득:', downloadUrl);
+      
       const response = await fetch(downloadUrl);
+      console.log('✅ Fetch 완료, status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const blob = await response.blob();
+      console.log('✅ Blob 변환 완료, 크기:', blob.size, 'bytes');
       
       return blob;
     } catch (error) {
-      console.error('PDF 다운로드 실패:', error);
+      console.error('❌ PDF 다운로드 실패:', error);
+      console.error('❌ 에러 상세:', {
+        message: error.message,
+        code: error.code,
+        name: error.name
+      });
       throw error;
     }
   }
