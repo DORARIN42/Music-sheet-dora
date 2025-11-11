@@ -162,20 +162,27 @@ class FirebaseDB {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       
-      // 모바일 환경에서는 redirect 방식 사용
+      console.log('🔐 로그인 시작');
+      console.log('📱 isMobile():', this.isMobile());
+      console.log('👆 터치 지원:', 'ontouchstart' in window);
+      console.log('🖥️ User Agent:', navigator.userAgent);
+      
+      // 모바일/터치 환경에서는 redirect 방식 사용
       if (this.isMobile()) {
+        console.log('➡️ Redirect 방식 사용');
         await this.auth.signInWithRedirect(provider);
         // redirect 후 페이지가 다시 로드되므로 여기서 return
         return null;
       } else {
+        console.log('🪟 Popup 방식 사용');
         // 데스크톱에서는 popup 방식 사용
         const result = await this.auth.signInWithPopup(provider);
         this.currentUser = result.user;
-        console.log('로그인 성공:', this.currentUser.email);
+        console.log('✅ 로그인 성공:', this.currentUser.email);
         return this.currentUser;
       }
     } catch (error) {
-      console.error('로그인 실패:', error);
+      console.error('❌ 로그인 실패:', error);
       throw error;
     }
   }
@@ -205,10 +212,16 @@ class FirebaseDB {
   }
 
   /**
-   * 모바일 환경 감지
+   * 모바일 환경 감지 (iPad 포함)
    */
   isMobile() {
-    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // iPad는 Safari 설정에 따라 데스크톱 User Agent를 사용할 수 있음
+    // 터치 이벤트와 User Agent를 모두 확인
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isMobileUA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    // iPad Safari는 데스크톱 UA를 사용하더라도 터치 디바이스
+    return isTouchDevice || isMobileUA;
   }
 
   /**
